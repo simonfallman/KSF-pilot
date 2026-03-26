@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { SystemDescriptionForm } from "@/components/system-description-form";
 import { FollowUpForm } from "@/components/follow-up-form";
 import { TestCasesPanel } from "@/components/test-cases-panel";
-import { mergeSystemInput } from "@/lib/prompts";
 import type { GenerationOutput, KsfLevel, SystemDetails } from "@/lib/types";
 
 type Step =
@@ -27,11 +26,10 @@ export function RequirementsWorkspace() {
     setError(null);
 
     try {
-      const description = mergeSystemInput(details);
       const response = await fetch("/kravbot/api/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ systemDescription: description, level: details.level }),
+        body: JSON.stringify({ systemDescription: details.description, level: details.level }),
       });
 
       if (!response.ok) {
@@ -51,7 +49,7 @@ export function RequirementsWorkspace() {
   async function handleQuestionsSubmit(answers: Record<number, string>) {
     if (step.kind !== "questions") return;
 
-    const baseDescription = mergeSystemInput(step.details);
+    const baseDescription = step.details.description;
     const answerLines = step.questions
       .map((q, i) => {
         const ans = answers[i]?.trim();

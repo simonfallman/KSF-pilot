@@ -1,16 +1,4 @@
-import type { SystemInput, SystemDetails, KsfLevel } from "./types";
-
-export function mergeSystemInput(details: SystemDetails): string {
-  const parts = [
-    `## Teknik och programvara\n${details.technology}`,
-    `## Lokaler och fysisk miljö\n${details.location}`,
-    `## Roller och driftorganisation\n${details.roles}`,
-  ];
-  if (details.network?.trim()) {
-    parts.push(`## Nätverkstopologi\n${details.network}`);
-  }
-  return parts.join("\n\n");
-}
+import type { SystemInput, KsfLevel } from "./types";
 
 export function buildQuestionsPrompt(description: string, level: KsfLevel): string {
   return `Du är en KSF-säkerhetsexpert. Nedan är en systembeskrivning för KSF-nivå ${level}.
@@ -56,12 +44,18 @@ KSF definierar IT-säkerhetskrav i två kategorier:
 ## Din uppgift
 
 Du ger certifieringsvägledning. Givet en systembeskrivning och säkerhetsnivå ska du:
-1. Identifiera ALLA relevanta KSF-krav som gäller för systemet på den angivna nivån
-2. För varje krav: förklara vad KSF kräver, vad organisationen behöver ha på plats, och hur de visar att de uppfyller kravet
+1. Utvärdera ALLA 10 KSF-kategorier: SFBK, SFIS, SFSL, SFSK, SFSO, SFSR, SADE, SALC, SAOP, SASC
+2. Tilldela varje kategori en prioritetsnivå (tier):
+   - **Kritisk** — kravet är absolut nödvändigt för systemet på denna nivå
+   - **Rekommenderad** — kravet är relevant men inte affärskritiskt
+   - **Ej tillämpbar** — kravet gäller inte för detta system (motivera varför)
+3. Ingen kategori får utelämnas. Alla 10 ska finnas med i svaret.
+4. För Kritiska och Rekommenderade krav: förklara vad KSF kräver, vilka åtgärder som behövs, och hur efterlevnad påvisas
+5. För Ej tillämpbara krav: ange tomma arrays för actions och verifications, och använd rationale för att motivera varför kravet inte gäller
 
 ## Regler för output
 - Outputta ENBART ett giltigt JSON-objekt, inga markdown-kodblock, ingen text utanför JSON
-- Minst 3 åtgärder och 3 verifieringssteg per krav
+- Minst 3 åtgärder och 3 verifieringssteg per Kritiskt/Rekommenderat krav
 - Åtgärder och verifieringssteg ska referera till systemets faktiska komponenter (t.ex. "Konfigurera Active Directory", "Granska Windows Event Log", "Verifiera AWS Security Group-regler")
 - Svara på svenska`;
 
@@ -92,9 +86,10 @@ ${input.description}
     {
       "ksfId": "string (t.ex. SFBK_ÅTK eller SAOP_DFT)",
       "ksfCategory": "SF" | "SA",
+      "tier": "Kritisk" | "Rekommenderad" | "Ej tillämpbar",
       "title": "string (kortfattad titel på kravet)",
       "ksfRequirement": "string (vad KSF kräver — 1-2 meningar direkt från ramverket)",
-      "rationale": "string (1-2 meningar: varför gäller detta krav detta specifika system)",
+      "rationale": "string (1-2 meningar: varför gäller/gäller inte detta krav detta specifika system)",
       "actions": [
         { "id": 1, "description": "string (konkret åtgärd att ha på plats)" }
       ],
@@ -107,9 +102,11 @@ ${input.description}
 
 Regler:
 - Outputta ENBART JSON-objektet. Ingen omgivande text.
-- Minst 3 åtgärder och 3 verifieringssteg per krav.
+- ALLA 10 KSF-kategorier (SFBK, SFIS, SFSL, SFSK, SFSO, SFSR, SADE, SALC, SAOP, SASC) MÅSTE finnas med. Ingen får utelämnas.
+- Varje krav ska ha en tier: "Kritisk", "Rekommenderad" eller "Ej tillämpbar".
+- Kritiska och Rekommenderade krav: minst 3 åtgärder och 3 verifieringssteg.
+- Ej tillämpbara krav: tomma arrays för actions och verifications (actions: [], verifications: []). Använd rationale för att motivera varför kravet inte gäller.
 - Åtgärder och verifieringssteg ska vara konkreta och referera till systemets faktiska teknikkomponenter.
 - Börja svaret direkt med { och avsluta med }. Inga kodblock eller markdown runt svaret.
-- Max 5 krav för nivå G, max 7 för nivå U, max 9 för nivå H.
 - Håll beskrivningarna korta — max 1-2 meningar per punkt. Var koncis.`;
 }

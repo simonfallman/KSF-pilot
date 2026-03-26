@@ -4,7 +4,13 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import type { IdentifiedRequirement } from "@/lib/types";
+import type { IdentifiedRequirement, RequirementTier } from "@/lib/types";
+
+const tierVariant: Record<RequirementTier, "red" | "amber" | "outline"> = {
+  Kritisk: "red",
+  Rekommenderad: "amber",
+  "Ej tillämpbar": "outline",
+};
 
 interface Props {
   requirement: IdentifiedRequirement;
@@ -43,6 +49,9 @@ export function RequirementCard({ requirement: req }: Props) {
           <Badge variant={req.ksfCategory === "SF" ? "blue" : "amber"}>
             {req.ksfCategory}
           </Badge>
+          <Badge variant={tierVariant[req.tier]}>
+            {req.tier}
+          </Badge>
           <span className="font-semibold leading-snug">{req.title}</span>
         </div>
         {req.rationale && (
@@ -55,35 +64,39 @@ export function RequirementCard({ requirement: req }: Props) {
           <p className="text-sm">{req.ksfRequirement}</p>
         </SectionToggle>
 
-        <Separator />
+        {req.tier !== "Ej tillämpbar" && (
+          <>
+            <Separator />
 
-        <SectionToggle title={`Vad ni behöver ha på plats (${req.actions.length})`}>
-          <ol className="space-y-1.5">
-            {req.actions.map((action) => (
-              <li key={action.id} className="flex gap-2.5">
-                <span className="font-semibold text-muted-foreground shrink-0 w-4 text-right">
-                  {action.id}.
-                </span>
-                <span>{action.description}</span>
-              </li>
-            ))}
-          </ol>
-        </SectionToggle>
+            <SectionToggle title={`Vad ni behöver ha på plats (${req.actions.length})`}>
+              <ol className="space-y-1.5">
+                {req.actions.map((action) => (
+                  <li key={action.id} className="flex gap-2.5">
+                    <span className="font-semibold text-muted-foreground shrink-0 w-4 text-right">
+                      {action.id}.
+                    </span>
+                    <span>{action.description}</span>
+                  </li>
+                ))}
+              </ol>
+            </SectionToggle>
 
-        <Separator />
+            <Separator />
 
-        <SectionToggle title={`Hur ni visar att ni uppfyller det (${req.verifications.length})`}>
-          <ol className="space-y-1.5">
-            {req.verifications.map((step) => (
-              <li key={step.id} className="flex gap-2.5">
-                <span className="font-semibold text-muted-foreground shrink-0 w-4 text-right">
-                  {step.id}.
-                </span>
-                <span>{step.description}</span>
-              </li>
-            ))}
-          </ol>
-        </SectionToggle>
+            <SectionToggle title={`Hur ni visar att ni uppfyller det (${req.verifications.length})`}>
+              <ol className="space-y-1.5">
+                {req.verifications.map((step) => (
+                  <li key={step.id} className="flex gap-2.5">
+                    <span className="font-semibold text-muted-foreground shrink-0 w-4 text-right">
+                      {step.id}.
+                    </span>
+                    <span>{step.description}</span>
+                  </li>
+                ))}
+              </ol>
+            </SectionToggle>
+          </>
+        )}
       </CardContent>
     </Card>
   );

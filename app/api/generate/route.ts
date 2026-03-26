@@ -21,7 +21,7 @@ export async function POST(request: Request): Promise<Response> {
 
     const stream = client.messages.stream({
       model: "us.anthropic.claude-sonnet-4-6",
-      max_tokens: 12000,
+      max_tokens: 30000,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: buildSystemPrompt({ description: systemDescription, level }) }],
     });

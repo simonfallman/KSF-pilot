@@ -1,6 +1,12 @@
-import type { GenerationOutput } from "./types";
+import type { GenerationOutput, RequirementTier, IdentifiedRequirement } from "./types";
 
 const levelLabel = { G: "Grund", U: "Utökad", H: "Hög", unknown: "Okänd" };
+
+const tierSectionLabel: Record<RequirementTier, string> = {
+  Kritisk: "Kritiska krav",
+  Rekommenderad: "Rekommenderade krav",
+  "Ej tillämpbar": "Ej tillämpbara krav",
+};
 
 export function exportToMarkdown(output: GenerationOutput): string {
   const lines: string[] = [
@@ -17,39 +23,44 @@ export function exportToMarkdown(output: GenerationOutput): string {
     "",
   ];
 
-  for (const req of output.requirements) {
-    const categoryLabel = req.ksfCategory === "SF"
-      ? "Säkerhetsfunktionalitet"
-      : "Systemassurans";
+  const tierOrder: RequirementTier[] = ["Kritisk", "Rekommenderad", "Ej tillämpbar"];
 
-    lines.push(
-      `## ${req.ksfId} — ${req.title}`,
-      "",
-      `**Kategori:** ${categoryLabel}`,
-      "",
-      `**Vad KSF kräver:** ${req.ksfRequirement}`,
-      "",
-      `**Motivering:** ${req.rationale}`,
-      "",
-      "### Vad ni behöver ha på plats",
-      "",
-    );
+  for (const tier of tierOrder) {
+    const reqs = output.requirements.filter((r) => r.tier === tier);
+    if (reqs.length === 0) continue;
 
-    for (const action of req.actions) {
-      lines.push(`${action.id}. ${action.description}`);
+    lines.push(`## ${tierSectionLabel[tier]}`, "");
+
+    for (const req of reqs) {
+      const categoryLabel = req.ksfCategory === "SF"
+        ? "Säkerhetsfunktionalitet"
+        : "Systemassurans";
+
+      lines.push(
+        `### ${req.ksfId} — ${req.title}`,
+        "",
+        `**Kategori:** ${categoryLabel}`,
+        "",
+        `**Vad KSF kräver:** ${req.ksfRequirement}`,
+        "",
+        `**Motivering:** ${req.rationale}`,
+        "",
+      );
+
+      if (tier !== "Ej tillämpbar") {
+        lines.push("#### Vad ni behöver ha på plats", "");
+        for (const action of req.actions) {
+          lines.push(`${action.id}. ${action.description}`);
+        }
+        lines.push("", "#### Hur ni visar att ni uppfyller det", "");
+        for (const step of req.verifications) {
+          lines.push(`${step.id}. ${step.description}`);
+        }
+        lines.push("");
+      }
+
+      lines.push("---", "");
     }
-
-    lines.push(
-      "",
-      "### Hur ni visar att ni uppfyller det",
-      "",
-    );
-
-    for (const step of req.verifications) {
-      lines.push(`${step.id}. ${step.description}`);
-    }
-
-    lines.push("", "---", "");
   }
 
   return lines.join("\n");

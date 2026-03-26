@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { RequirementCard } from "@/components/requirement-card";
 import { ExportButton } from "@/components/export-button";
-import type { GenerationOutput } from "@/lib/types";
+import type { GenerationOutput, IdentifiedRequirement, RequirementTier } from "@/lib/types";
 
 interface Props {
   output: GenerationOutput | null;
@@ -53,6 +54,26 @@ export function TestCasesPanel({ output, isGenerating, streamingText }: Props) {
 
   if (!output) return null;
 
+  const tierOrder: RequirementTier[] = ["Kritisk", "Rekommenderad", "Ej tillämpbar"];
+  const tierLabel: Record<RequirementTier, string> = {
+    Kritisk: "Kritiska krav",
+    Rekommenderad: "Rekommenderade krav",
+    "Ej tillämpbar": "Ej tillämpbara krav",
+  };
+  const tierBadgeVariant: Record<RequirementTier, "red" | "amber" | "outline"> = {
+    Kritisk: "red",
+    Rekommenderad: "amber",
+    "Ej tillämpbar": "outline",
+  };
+
+  const grouped = tierOrder.reduce(
+    (acc, tier) => {
+      acc[tier] = output.requirements.filter((r) => r.tier === tier);
+      return acc;
+    },
+    {} as Record<RequirementTier, IdentifiedRequirement[]>,
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -63,7 +84,9 @@ export function TestCasesPanel({ output, isGenerating, streamingText }: Props) {
             <Badge variant="outline">
               Nivå {output.level} — {levelLabel[output.level]}
             </Badge>
-            <Badge variant="secondary">{output.requirements.length} KSF-krav</Badge>
+            <Badge variant="red">{grouped["Kritisk"].length} kritiska</Badge>
+            <Badge variant="amber">{grouped["Rekommenderad"].length} rekommenderade</Badge>
+            <Badge variant="outline">{grouped["Ej tillämpbar"].length} ej tillämpbara</Badge>
           </div>
           {output.systemSummary && (
             <p className="text-sm text-muted-foreground max-w-prose">
@@ -74,10 +97,47 @@ export function TestCasesPanel({ output, isGenerating, streamingText }: Props) {
         <ExportButton output={output} />
       </div>
 
-      {/* Requirements */}
-      {output.requirements.map((req) => (
-        <RequirementCard key={req.ksfId} requirement={req} />
-      ))}
+      {/* Requirements grouped by tier */}
+      {tierOrder.map((tier) => {
+        const reqs = grouped[tier];
+        if (reqs.length === 0) return null;
+        return (
+          <TierSection key={tier} label={tierLabel[tier]} badgeVariant={tierBadgeVariant[tier]} count={reqs.length} defaultOpen={tier !== "Ej tillämpbar"}>
+            {reqs.map((req) => (
+              <RequirementCard key={req.ksfId} requirement={req} />
+            ))}
+          </TierSection>
+        );
+      })}
+    </div>
+  );
+}
+
+function TierSection({
+  label,
+  badgeVariant,
+  count,
+  defaultOpen,
+  children,
+}: {
+  label: string;
+  badgeVariant: "red" | "amber" | "outline";
+  count: number;
+  defaultOpen: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 mb-3 hover:opacity-80 transition-opacity"
+      >
+        <span className="text-sm">{open ? "▼" : "▶"}</span>
+        <h3 className="text-base font-semibold">{label}</h3>
+        <Badge variant={badgeVariant}>{count}</Badge>
+      </button>
+      {open && <div className="space-y-4">{children}</div>}
     </div>
   );
 }
